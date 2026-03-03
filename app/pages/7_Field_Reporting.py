@@ -4,6 +4,7 @@ import uuid
 import random
 from datetime import datetime
 import sys
+import sqlite3
 from PIL import Image
 from pillow_heif import register_heif_opener
 import plotly.graph_objects as go
@@ -15,13 +16,15 @@ register_heif_opener()
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "../../")))
 from database import init_db, save_case
 
+st.set_page_config(layout="wide")
 st.title("🏝 Andaman & Nicobar Environmental Field Reporting System")
 
 init_db()
 
-# ----------------------------------
-# 1️⃣ Try Browser GPS (Primary)
-# ----------------------------------
+# ---------------------------------------------------
+# AUTO LOCATION DETECTION
+# ---------------------------------------------------
+
 st.subheader("📡 Auto Location Detection")
 
 browser_location = streamlit_js_eval(
@@ -37,9 +40,10 @@ if browser_location and isinstance(browser_location, dict):
     longitude = browser_location.get("longitude")
     st.success("📍 Live location detected from device GPS.")
 
-# ----------------------------------
-# 2️⃣ File Upload + EXIF GPS (Secondary)
-# ----------------------------------
+# ---------------------------------------------------
+# IMAGE UPLOAD + EXIF GPS
+# ---------------------------------------------------
+
 uploaded_files = st.file_uploader(
     "Upload Live Camera Image (GPS Enabled)",
     accept_multiple_files=True,
@@ -72,7 +76,7 @@ def extract_gps(image):
     except:
         return None, None
 
-if uploaded_files and (latitude is None):
+if uploaded_files and latitude is None:
     image = Image.open(uploaded_files[0])
     lat, lon = extract_gps(image)
 
@@ -83,18 +87,20 @@ if uploaded_files and (latitude is None):
     else:
         st.warning("Image has no GPS metadata.")
 
-# ----------------------------------
-# 3️⃣ Manual Fallback (Last Resort)
-# ----------------------------------
+# ---------------------------------------------------
+# MANUAL FALLBACK
+# ---------------------------------------------------
+
 if latitude is None:
     latitude = st.number_input("Latitude", value=11.62, format="%.6f")
 
 if longitude is None:
     longitude = st.number_input("Longitude", value=92.73, format="%.6f")
 
-# ----------------------------------
+# ---------------------------------------------------
 # ISLAND NODE DETECTION
-# ----------------------------------
+# ---------------------------------------------------
+
 def detect_island_node(lat):
     if lat < 10.5:
         return "Nicobar Node"
@@ -112,9 +118,10 @@ def detect_island_node(lat):
 island_node = detect_island_node(latitude)
 st.info(f"Detected Island Node: {island_node}")
 
-# ----------------------------------
+# ---------------------------------------------------
 # MAP PREVIEW
-# ----------------------------------
+# ---------------------------------------------------
+
 predicted_severity = random.randint(1, 3)
 
 if predicted_severity == 3:
@@ -129,7 +136,7 @@ fig = go.Figure(go.Scattermapbox(
     lon=[longitude],
     mode='markers',
     marker=go.scattermapbox.Marker(
-        size=16,
+        size=18,
         color=marker_color
     )
 ))
@@ -146,16 +153,22 @@ fig.update_layout(
 
 st.plotly_chart(fig, width="stretch")
 
-# ----------------------------------
-# SUBMIT REPORT
-# ----------------------------------
+# ---------------------------------------------------
+# SUBMIT REPORT (WITH ALERT LOGIC)
+# ---------------------------------------------------
+
 if st.button("Submit Report"):
 
     risk_score = round(random.uniform(1.2, 2.2), 2)
 
     case_id = "CASE_" + str(uuid.uuid4())[:8]
     timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    status = "Reported"
+
+    # 🔴 CRITICAL ALERT LOGIC
+    if predicted_severity == 3:
+        status = "CRITICAL – DISPATCHED"
+    else:
+        status = "Monitoring"
 
     os.makedirs("uploads", exist_ok=True)
 
@@ -188,4 +201,7 @@ if st.button("Submit Report"):
 
     save_case(case_data)
 
-    st.success(f"✅ Case {case_id} submitted successfully.")
+    if predicted_severity == 3:
+        st.error(f"🚨 CRITICAL ALERT TRIGGERED – Case {case_id} Dispatched")
+    else:
+        st.success(f"✅ Case {case_id} submitted successfully.")
