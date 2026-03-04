@@ -10,34 +10,34 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------------------------------------------
+# =========================================================
 # HEADER WITH LIVE CLOCK
-# ---------------------------------------------------
+# =========================================================
 
-col1, col2 = st.columns([4,1])
+col1, col2 = st.columns([4, 1])
 
 with col1:
     st.markdown("""
-    <h2 style='margin-bottom:0px;'>OceanLens Command Center</h2>
-    <span style='font-size:14px;color:gray;'>
-    Andaman & Nicobar Environmental Intelligence Infrastructure
-    </span>
+        <h2 style='margin-bottom:0px;'>OceanLens Command Center</h2>
+        <span style='font-size:14px;color:gray;'>
+        Andaman & Nicobar Environmental Intelligence Infrastructure
+        </span>
     """, unsafe_allow_html=True)
 
 with col2:
     ist = pytz.timezone("Asia/Kolkata")
     now = datetime.now(ist)
     st.markdown(f"""
-    <div style='text-align:right; font-size:14px; color:#00b3b3;'>
-    {now.strftime("%d %b %Y | %H:%M:%S")} IST
-    </div>
+        <div style='text-align:right; font-size:14px; color:#00b3b3;'>
+        {now.strftime("%d %b %Y | %H:%M:%S")} IST
+        </div>
     """, unsafe_allow_html=True)
 
 st.divider()
 
-# ---------------------------------------------------
+# =========================================================
 # LOAD DATABASE
-# ---------------------------------------------------
+# =========================================================
 
 def load_cases():
     try:
@@ -50,55 +50,79 @@ def load_cases():
 
 df = load_cases()
 
-# ---------------------------------------------------
-# SYSTEM STATUS STRIP
-# ---------------------------------------------------
+# =========================================================
+# GOVERNMENT STYLE KPI PANELS
+# =========================================================
 
-st.markdown("### System Status")
-
-colA, colB, colC, colD = st.columns(4)
-
-total_cases = len(df)
+st.markdown("### Operational Overview")
 
 if not df.empty:
+    total_cases = len(df)
     avg_risk = round(df["risk_score"].mean(), 2)
     high_severity = len(df[df["severity"] == 3])
 else:
+    total_cases = 0
     avg_risk = 0
     high_severity = 0
 
-with colA:
-    st.metric("Total Incidents", total_cases)
+# Determine system color
+if avg_risk > 1.8:
+    system_color = "#8B0000"
+    system_label = "CRITICAL"
+elif avg_risk > 1.4:
+    system_color = "#b8860b"
+    system_label = "WATCH"
+else:
+    system_color = "#006400"
+    system_label = "STABLE"
 
-with colB:
-    st.metric("High Severity Cases", high_severity)
+col1, col2, col3, col4 = st.columns(4)
 
-with colC:
-    st.metric("Average Risk Score", avg_risk)
+def kpi_panel(title, value, border_color):
+    st.markdown(f"""
+        <div style="
+            border: 2px solid {border_color};
+            padding: 20px;
+            border-radius: 8px;
+            background-color: #111827;
+        ">
+            <div style="font-size:13px; color:gray; letter-spacing:1px;">
+                {title}
+            </div>
+            <div style="font-size:36px; font-weight:bold; margin-top:5px;">
+                {value}
+            </div>
+        </div>
+    """, unsafe_allow_html=True)
 
-with colD:
-    if avg_risk > 1.8:
-        st.error("System Status: CRITICAL")
-    elif avg_risk > 1.4:
-        st.warning("System Status: WATCH")
-    else:
-        st.success("System Status: STABLE")
+with col1:
+    kpi_panel("TOTAL INCIDENTS", total_cases, "#00b3b3")
+
+with col2:
+    kpi_panel("HIGH SEVERITY CASES", high_severity, "#ff4c4c")
+
+with col3:
+    kpi_panel("AVERAGE RISK SCORE", avg_risk, "#ffaa00")
+
+with col4:
+    kpi_panel("SYSTEM STATUS", system_label, system_color)
 
 st.divider()
 
-# ---------------------------------------------------
-# ANDAMAN LIVE INCIDENT MAP
-# ---------------------------------------------------
+# =========================================================
+# LIVE INCIDENT MAP — ANDAMAN & NICOBAR
+# =========================================================
 
 st.markdown("### Live Incident Map — Andaman & Nicobar")
 
 fig = go.Figure()
 
 if not df.empty:
+
     color_map = {
-        1: "green",
-        2: "yellow",
-        3: "red"
+        1: "#00ff99",  # low
+        2: "#ffaa00",  # medium
+        3: "#ff4c4c"   # high
     }
 
     for severity in df["severity"].unique():
@@ -110,14 +134,14 @@ if not df.empty:
             mode="markers",
             marker=go.scattermapbox.Marker(
                 size=12,
-                color=color_map.get(severity, "blue")
+                color=color_map.get(severity, "#00b3b3")
             ),
             name=f"Severity {severity}"
         ))
 
 fig.update_layout(
     mapbox=dict(
-        style="open-street-map",
+        style="carto-darkmatter",  # darker command look
         center=dict(lat=11.8, lon=92.7),
         zoom=6
     ),
@@ -132,20 +156,20 @@ fig.update_layout(
     )
 )
 
-st.plotly_chart(fig, width="stretch")
+st.plotly_chart(fig, use_container_width=True)
 
 st.divider()
 
-# ---------------------------------------------------
+# =========================================================
 # RECENT INCIDENTS TABLE
-# ---------------------------------------------------
+# =========================================================
 
 st.markdown("### Recent Incident Reports")
 
 if not df.empty:
     st.dataframe(
         df.sort_values("timestamp", ascending=False).head(10),
-        width="stretch"
+        use_container_width=True
     )
 else:
     st.info("No incident reports available.")
