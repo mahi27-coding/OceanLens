@@ -7,4 +7,4 @@ pillow
 pillow-heif
 streamlit-js-eval
 pytz
-
+streamlit-folium
