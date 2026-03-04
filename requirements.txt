@@ -2,9 +2,10 @@ streamlit
 pandas
 numpy
 scikit-learn
+folium
+streamlit-folium
 plotly
 pillow
 pillow-heif
 streamlit-js-eval
 pytz
-streamlit-folium
