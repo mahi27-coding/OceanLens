@@ -51,7 +51,7 @@ def load_cases():
 df = load_cases()
 
 # =========================================================
-# GOVERNMENT STYLE KPI PANELS
+# KPI PANELS (3 PANELS)
 # =========================================================
 
 st.markdown("### Operational Overview")
@@ -65,18 +65,7 @@ else:
     avg_risk = 0
     high_severity = 0
 
-# Determine system color
-if avg_risk > 1.8:
-    system_color = "#8B0000"
-    system_label = "CRITICAL"
-elif avg_risk > 1.4:
-    system_color = "#b8860b"
-    system_label = "WATCH"
-else:
-    system_color = "#006400"
-    system_label = "STABLE"
-
-col1, col2, col3, col4 = st.columns(4)
+col1, col2, col3 = st.columns(3)
 
 def kpi_panel(title, value, border_color):
     st.markdown(f"""
@@ -104,13 +93,40 @@ with col2:
 with col3:
     kpi_panel("AVERAGE RISK SCORE", avg_risk, "#ffaa00")
 
-with col4:
-    kpi_panel("SYSTEM STATUS", system_label, system_color)
+st.divider()
+
+# =========================================================
+# FULL WIDTH COMMAND STATUS STRIP
+# =========================================================
+
+if avg_risk > 1.8:
+    strip_color = "#8B0000"
+    strip_message = "CRITICAL — Immediate Intervention Required"
+elif avg_risk > 1.4:
+    strip_color = "#b8860b"
+    strip_message = "WATCH — Elevated Environmental Risk"
+else:
+    strip_color = "#006400"
+    strip_message = "STABLE — Monitoring Active"
+
+st.markdown(f"""
+    <div style="
+        background-color: {strip_color};
+        padding: 14px;
+        border-radius: 6px;
+        font-weight: 500;
+        font-size: 15px;
+        text-align: center;
+        letter-spacing: 0.5px;
+    ">
+        SYSTEM STATUS: {strip_message}
+    </div>
+""", unsafe_allow_html=True)
 
 st.divider()
 
 # =========================================================
-# LIVE INCIDENT MAP — ANDAMAN & NICOBAR
+# LIVE INCIDENT MAP
 # =========================================================
 
 st.markdown("### Live Incident Map — Andaman & Nicobar")
@@ -120,9 +136,9 @@ fig = go.Figure()
 if not df.empty:
 
     color_map = {
-        1: "#00ff99",  # low
-        2: "#ffaa00",  # medium
-        3: "#ff4c4c"   # high
+        1: "#00ff99",
+        2: "#ffaa00",
+        3: "#ff4c4c"
     }
 
     for severity in df["severity"].unique():
@@ -141,9 +157,9 @@ if not df.empty:
 
 fig.update_layout(
     mapbox=dict(
-        style="carto-darkmatter",  # darker command look
+        style="carto-darkmatter",
         center=dict(lat=11.8, lon=92.7),
-        zoom=6
+        zoom=6.7
     ),
     margin={"r":0,"t":0,"l":0,"b":0},
     height=550,
